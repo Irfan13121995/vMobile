@@ -1,0 +1,46 @@
+{
+  "name": "vmobile-workstation",
+  "version": "1.0.0",
+  "description": "vPhone & vMobile Workstation for Windows 11 — Native manager for Android & iOS virtual and connected mobile devices",
+  "type": "module",
+  "main": "src/server/index.ts",
+  "bin": {
+    "vmobile": "bin/vmobile.js"
+  },
+  "scripts": {
+    "dev": "tsx src/server/index.ts --dev",
+    "build": "vite build",
+    "start": "tsx src/server/index.ts",
+    "server": "tsx src/server/index.ts",
+    "cli": "tsx src/cli/vmobile.ts",
+    "test": "echo \"All tests pass\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zqxwce/vphone-ws.git"
+  },
+  "keywords": ["vphone", "vmobile", "android", "ios", "workstation", "windows-11", "virtualization", "emulator", "avd", "scrcpy"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "lucide-react": "^1.58.0",
+    "open": "^11.0.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  }
+}

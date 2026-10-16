@@ -157,6 +157,7 @@ export class AvdManager {
       'tag.display': opts.variant === 'root-magisk' ? 'Rooted / Magisk' : 'Google Play / APIs',
       'abi.type': 'x86_64',
       'vm.heapSize': '512',
+      'image.sysdir.1': 'system-images\\android-35\\default\\x86_64\\',
     };
 
     fs.writeFileSync(path.join(avdFolderPath, 'config.ini'), this.formatIni(configIni), 'utf8');

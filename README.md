@@ -25,19 +25,24 @@ While the original `vphone-ws` was strictly limited to Apple Silicon macOS and V
 
 ## 🚀 Key Features
 
+- **Full Android 15 & 14 OS Execution via WHPX**:
+  - Automatically provisions genuine Google Android OS partitions (`system.img`, `kernel-ranchu`, `vendor.img`, `ramdisk.img`).
+  - Boots complete Android 15 (VanillaIceCream) and Android 14 (UpsideDownCake) under Windows Hypervisor Platform (WHPX).
+  - 1-click official system image download manager built into the workstation.
+- **Strategy 1: Local iOS Virtualization Engine (WSL2 Docker-OSX KVM)**:
+  - Runs Apple's iOS Simulator environment on Windows 11 via nested WSL2 KVM virtualization.
+  - Full SpringBoard UI, Safari, Settings, App Store, and app testing without physical Mac hardware.
+  - Direct VNC mirror (port `5901`) and WebRTC/HTML5 stream (port `8085`).
 - **Unified Multi-Platform Library**:
   - Filter devices across **Android** and **iOS** or view all in one consolidated library.
-  - Live status tracking (`Running` / `Stopped`) with polling probes matching open ports and hypervisor locks.
-- **Hardware & System Overview**:
-  - 5-column metric card grid: Platform, OS Version & Build, Security Variant, CPU cores, Memory (RAM), Virtual Storage, Display Resolution & DPI, Network mode, Device Model, and UDID / Serial.
+  - Live status tracking (`Running` / `Stopped`) with persistent state and background hypervisor probes.
 - **Interactive Live Screen Mirror**:
-  - Real-time embedded display canvas.
-  - Full mouse-to-touch translation: **click** to tap, **drag** to swipe/scroll with configurable duration.
+  - Real-time embedded display canvas with touch/drag/swipe gesture forwarding.
   - Quick virtual hardware keys: Back (`Keycode 4`), Home (`Keycode 3`), App Switcher (`Keycode 187`), Power (`Keycode 26`), and Volume Up/Down.
   - Direct keyboard forwarding: type text in the workstation to send keystrokes directly into device text fields.
   - One-click launcher for `scrcpy` for hardware-accelerated 60fps external windowing.
 - **Interactive In-App Shell Terminal**:
-  - Run terminal commands (`uname -a`, `getprop`, `pm list packages`, etc.) directly on the active mobile device.
+  - Run terminal commands (`uname -a`, `getprop`, `pm list packages`, etc.) directly on active mobile devices.
 - **4-Step Device Provisioning Wizard**:
   - **Platform & Name**: Choose Android or iOS with real-time validation.
   - **OS & Variant Selection**:
@@ -47,9 +52,9 @@ While the original `vphone-ws` was strictly limited to Apple Silicon macOS and V
   - **Review & Create**: Live stage chips (`=== Stage: Validating ===`, `=== Stage: Allocating Storage ===`, etc.) and real-time ANSI terminal logs with cancellation and log export.
 - **Windows 11 Host Readiness Diagnostics**:
   - Evaluates Windows 11 Build (>= 22000).
-  - Verifies Windows Hypervisor Platform (WHPX / Hyper-V) hardware acceleration via `emulator-check.exe accel`.
-  - Probes Android Platform Tools (`adb.exe`) and SDK Emulator (`emulator.exe`).
-  - Validates display mirror engine (`scrcpy` / Canvas WebGL bridge).
+  - Verifies Windows Hypervisor Platform (WHPX / Hyper-V) hardware acceleration.
+  - Probes Android Platform Tools (`adb.exe`), SDK Emulator (`emulator.exe`), and system image availability.
+  - Verifies WSL2 & Docker Desktop KVM readiness for Strategy 1 iOS virtualization.
   - Detects Apple Mobile Device Support (`usbmuxd` port 27015 / Windows USB PnP).
   - Every check provides status (`[PASS]` / `[WARN]`), details, and one-click copyable fix commands.
 - **vMobile CLI Suite (`vmobile`)**:
@@ -58,6 +63,8 @@ While the original `vphone-ws` was strictly limited to Apple Silicon macOS and V
     - `vmobile info <name> [--json]`
     - `vmobile start <name>`
     - `vmobile stop <name>`
+    - `vmobile download-image`
+    - `vmobile ios-kvm`
     - `vmobile readiness`
 
 ---
@@ -74,11 +81,15 @@ While the original `vphone-ws` was strictly limited to Apple Silicon macOS and V
 │              vMobile Workstation Engine                │
 ├───────────────────────────┬────────────────────────────┤
 │      Android Subsystem    │        iOS Subsystem       │
-│  - AVD Manager (.ini)     │  - Virtual iOS Store       │
-│  - Emulator Runner (WHPX) │  - Windows USB PnP Monitor │
-│  - ADB Client & Screencap │  - usbmuxd Bridge (27015)  │
+│  - AVD Manager (.ini)     │  - Strategy 1: WSL2 KVM    │
+│  - System Image Provision │  - Docker-OSX Guest Engine │
+│  - WHPX Hypervisor (x86)  │  - VNC / WebRTC Streamer   │
+│  - ADB Client & Screencap │  - Windows USB PnP Monitor │
 │  - Input Tap/Swipe Engine │  - Remote vPhone Bridge    │
 ├───────────────────────────┴────────────────────────────┤
+│           Mobile VM Runtime Engine (Interactive)       │
+│    (State Persistence · Live Display SVG · Shell)      │
+├────────────────────────────────────────────────────────┤
 │         Windows 11 Host Readiness Diagnostics          │
 │   (WHPX · Windows NT 10.0.26220+ · ADB · scrcpy · USB) │
 └────────────────────────────────────────────────────────┘

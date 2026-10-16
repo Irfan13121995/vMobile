@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Smartphone,
   Play,
@@ -22,43 +22,44 @@ interface DeviceScreenMirrorProps {
 export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }) => {
   const [screenUrl, setScreenUrl] = useState<string>('');
   const [inputText, setInputText] = useState<string>('');
-  const [isInteracting, setIsInteracting] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dragStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
-  // Poll screen frames at ~2-3 fps for low bandwidth HTTP or continuous update
+  const fetchFrame = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/devices/${encodeURIComponent(device.name)}/screen?t=${Date.now()}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        setScreenUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, [device.name]);
+
+  // Poll screen frames at ~600ms when running
   useEffect(() => {
     let active = true;
     let timer: NodeJS.Timeout;
 
-    const fetchFrame = async () => {
+    const poll = async () => {
       if (!active) return;
-      try {
-        const res = await fetch(`/api/devices/${encodeURIComponent(device.name)}/screen?t=${Date.now()}`);
-        if (res.ok) {
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          setScreenUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return url;
-          });
-        }
-      } catch {
-        // ignore fetch frame errors
-      }
-
+      await fetchFrame();
       if (active) {
-        timer = setTimeout(fetchFrame, device.status === 'running' ? 800 : 2500);
+        timer = setTimeout(poll, device.status === 'running' ? 600 : 2000);
       }
     };
 
-    fetchFrame();
+    poll();
 
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [device.name, device.status]);
+  }, [fetchFrame, device.status]);
 
   // Handle touch tap or swipe forwarding
   const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -124,6 +125,7 @@ export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }
           }),
         });
       }
+      setTimeout(fetchFrame, 80);
     } catch {
       // ignore
     }
@@ -136,6 +138,7 @@ export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyCode }),
       });
+      setTimeout(fetchFrame, 80);
     } catch {
       // ignore
     }
@@ -151,6 +154,7 @@ export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }
         body: JSON.stringify({ text: inputText }),
       });
       setInputText('');
+      setTimeout(fetchFrame, 80);
     } catch {
       // ignore
     }
@@ -180,27 +184,27 @@ export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }
       {/* Phone Screen Mockup Window */}
       <div
         style={{
-          width: 270,
-          height: 520,
+          width: 280,
+          height: 560,
           backgroundColor: '#000',
-          borderRadius: 28,
-          border: '4px solid var(--border-strong)',
+          borderRadius: 36,
+          border: '5px solid var(--border-strong)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
+          boxShadow: '0 16px 40px rgba(0, 0, 0, 0.55)',
         }}
       >
         {/* Notch / Dynamic Island */}
         <div
           style={{
             position: 'absolute',
-            top: 6,
+            top: 7,
             left: '50%',
             transform: 'translateX(-50%)',
-            width: 80,
-            height: 14,
+            width: 84,
+            height: 16,
             backgroundColor: '#000',
             borderRadius: 10,
             zIndex: 10,
@@ -214,8 +218,8 @@ export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#111',
-            cursor: 'crosshair',
+            backgroundColor: '#0e1014',
+            cursor: 'pointer',
           }}
         >
           {screenUrl ? (
@@ -246,7 +250,7 @@ export const DeviceScreenMirror: React.FC<DeviceScreenMirrorProps> = ({ device }
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          padding: '6px 12px',
+          padding: '6px 14px',
           backgroundColor: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: 9999,

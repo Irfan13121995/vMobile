@@ -173,6 +173,32 @@ export const App: React.FC = () => {
 
   const selectedDevice = devices.find((d) => d.name === selectedName || d.id === selectedName);
 
+  const handleTriggerAction = async (actionId: string) => {
+    if (actionId === 'download-android-img') {
+      try {
+        const res = await fetch('/api/android/install-system-image', { method: 'POST' });
+        const data = await res.json();
+        if (data.taskId) {
+          const taskRes = await fetch(`/api/tasks/${data.taskId}`);
+          if (taskRes.ok) setActiveTask(await taskRes.json());
+        }
+      } catch (err: any) {
+        alert(`Error starting download: ${err.message}`);
+      }
+    } else if (actionId === 'launch-ios-kvm') {
+      try {
+        const res = await fetch('/api/ios/launch-wsl-kvm', { method: 'POST' });
+        const data = await res.json();
+        if (data.taskId) {
+          const taskRes = await fetch(`/api/tasks/${data.taskId}`);
+          if (taskRes.ok) setActiveTask(await taskRes.json());
+        }
+      } catch (err: any) {
+        alert(`Error starting iOS KVM: ${err.message}`);
+      }
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw' }}>
       <TitleBar
@@ -206,6 +232,7 @@ export const App: React.FC = () => {
             onRename={handleRename}
             onExport={handleExport}
             onOpenSettings={(dev) => setEditingDevice(dev)}
+            onLaunchIosKvm={() => handleTriggerAction('launch-ios-kvm')}
           />
         ) : (
           <div
@@ -249,6 +276,7 @@ export const App: React.FC = () => {
           onClose={() => setShowReadiness(false)}
           onRefresh={refreshReadiness}
           isRefreshing={isRefreshing}
+          onTriggerAction={handleTriggerAction}
         />
       )}
 

@@ -3,6 +3,8 @@ import { exec } from 'child_process';
 import { AppConfig } from '../config.js';
 import { HostCheck } from '../../shared/types.js';
 import { AdbClient } from '../android/adb-client.js';
+import { SystemImageDownloader } from '../android/system-image-downloader.js';
+import { WSLKvmManager } from '../ios/wsl-kvm-manager.js';
 
 export class HostReadiness {
   public static async runAll(): Promise<HostCheck[]> {
@@ -41,7 +43,7 @@ export class HostReadiness {
       fixCommand: adbOk ? undefined : 'winget install Google.PlatformTools',
     });
 
-    // 4. Android Emulator
+    // 4. Android SDK Emulator
     const emulatorPath = AppConfig.getEmulatorPath();
     const emulatorCheckPath = AppConfig.getEmulatorCheckPath();
     const emulatorOk = emulatorCheckPath !== null;
@@ -54,21 +56,45 @@ export class HostReadiness {
       fixCommand: emulatorOk ? undefined : 'Install Android SDK Command-line Tools and Emulator via Android Studio.',
     });
 
-    // 5. Screen Mirroring / Display Engine
+    // 5. Complete Android 15 OS System Image Check
+    const sysImgOk = SystemImageDownloader.isSystemImageInstalled();
+    checks.push({
+      id: 'android-sysimg',
+      title: sysImgOk ? 'Android 15 OS System Image installed' : 'Android 15 OS Image needed for full emulator.exe boot',
+      status: sysImgOk ? 'ok' : 'attention',
+      detail: sysImgOk
+        ? 'Complete Android 15 system image (system.img, kernel-ranchu, vendor.img) ready for WHPX.'
+        : 'Missing boot partitions in Sdk/system-images. Required for native emulator.exe. You can download the official 746MB image directly.',
+      fixCommand: sysImgOk ? undefined : 'npm run cli -- download-image',
+    });
+
+    // 6. iOS Strategy 1: Local WSL2 Docker-OSX KVM Virtualization
+    const kvmStatus = await WSLKvmManager.getStatus();
+    const kvmReady = kvmStatus.wslInstalled && kvmStatus.dockerInstalled;
+    checks.push({
+      id: 'ios-wsl-kvm',
+      title: kvmReady ? 'iOS Virtualization Engine (WSL2 & Docker) ready' : 'iOS Virtualization Engine (WSL2 KVM / Docker)',
+      status: kvmReady ? 'ok' : 'attention',
+      detail: kvmReady
+        ? `WSL2 active with Docker Desktop. Ready to run local iOS Virtual Machines (KVM accelerated).`
+        : `WSL2: ${kvmStatus.wslInstalled ? 'Found' : 'Not installed'}; Docker: ${kvmStatus.dockerInstalled ? 'Found' : 'Not installed'}. Required for local iOS VM execution.`,
+      fixCommand: kvmReady ? undefined : 'winget install Docker.DockerDesktop',
+    });
+
+    // 7. Display Mirror Engine
     const scrcpy = AppConfig.getScrcpyPath();
     const scrcpyOk = scrcpy !== null;
-
     checks.push({
       id: 'display-engine',
       title: scrcpyOk ? 'Hardware Display Mirror (scrcpy) available' : 'Built-in Canvas Mirror active (scrcpy optional)',
-      status: 'ok', // always ok because built-in canvas mirror is available
+      status: 'ok',
       detail: scrcpyOk
         ? `Hardware-accelerated 60fps mirror found at ${scrcpy}`
         : 'Using embedded high-speed interactive Canvas screencap mirror. You can also install scrcpy for external 60fps window.',
       fixCommand: scrcpyOk ? undefined : 'winget install Genymobile.scrcpy',
     });
 
-    // 6. Apple Mobile Device Support / usbmuxd
+    // 8. Apple Mobile Device Support / usbmuxd
     const usbmuxOk = await this.checkUsbmux();
     checks.push({
       id: 'apple-usbmux',

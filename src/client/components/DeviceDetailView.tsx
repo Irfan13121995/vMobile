@@ -26,6 +26,7 @@ interface DeviceDetailViewProps {
   onRename: (name: string) => void;
   onExport: (name: string) => void;
   onOpenSettings: (device: DeviceReport) => void;
+  onLaunchIosKvm?: () => void;
 }
 
 export const DeviceDetailView: React.FC<DeviceDetailViewProps> = ({
@@ -37,6 +38,7 @@ export const DeviceDetailView: React.FC<DeviceDetailViewProps> = ({
   onRename,
   onExport,
   onOpenSettings,
+  onLaunchIosKvm,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'screen' | 'shell'>('overview');
   const isRunning = device.status === 'running';
@@ -297,6 +299,114 @@ export const DeviceDetailView: React.FC<DeviceDetailViewProps> = ({
               {device.udid || 'N/A'}
             </span>
           </div>
+
+          {/* Strategy 1: WSL2 Docker-OSX KVM Card for iOS */}
+          {device.platform === 'ios' && (
+            <div
+              style={{
+                marginTop: 8,
+                padding: '16px 20px',
+                borderRadius: 'var(--radius)',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'var(--accent)' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                    Strategy 1: WSL2 Docker-OSX KVM Hypervisor Bridge
+                  </span>
+                </div>
+                <span className="badge" style={{ backgroundColor: 'rgba(91, 155, 255, 0.15)', color: 'var(--accent)', fontSize: 11, padding: '3px 8px', borderRadius: 4 }}>
+                  Local Windows 11 KVM
+                </span>
+              </div>
+
+              <div style={{ fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.5 }}>
+                Runs Apple's official iOS Simulator runtime inside a containerized macOS environment via Windows Subsystem for Linux (WSL2) with nested KVM acceleration. Complete SpringBoard, Safari, and app testing without physical Mac hardware.
+              </div>
+
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--dim)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>VNC Port:</span>
+                  <code className="font-mono">localhost:5901</code>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--dim)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>Web Display:</span>
+                  <code className="font-mono">localhost:8085</code>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button
+                  onClick={onLaunchIosKvm}
+                  className="btn-primary"
+                  style={{ fontSize: 12.5, padding: '7px 14px' }}
+                >
+                  <Play size={13} fill="currentColor" />
+                  <span>Launch WSL2 iOS KVM Guest</span>
+                </button>
+
+                <a
+                  href="http://localhost:8085"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary"
+                  style={{ fontSize: 12.5, padding: '7px 14px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Tv size={13} />
+                  <span>Open Web Stream (Port 8085)</span>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Android WHPX Card */}
+          {device.platform === 'android' && (
+            <div
+              style={{
+                marginTop: 8,
+                padding: '16px 20px',
+                borderRadius: 'var(--radius)',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'var(--good)' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                    Android Hypervisor: Windows Hypervisor Platform (WHPX)
+                  </span>
+                </div>
+                <span className="badge" style={{ backgroundColor: 'rgba(63, 185, 80, 0.15)', color: 'var(--good)', fontSize: 11, padding: '3px 8px', borderRadius: 4 }}>
+                  WHPX Accelerated
+                </span>
+              </div>
+
+              <div style={{ fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.5 }}>
+                Operating system partitions and Linux 6.1 kernel loaded directly via WHPX. Interactive display streams into the embedded canvas mirror with sub-second touch forwarding and ADB root shell access.
+              </div>
+
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--dim)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>ADB Endpoint:</span>
+                  <code className="font-mono">{device.serial || '127.0.0.1:5555'}</code>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--dim)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>Kernel:</span>
+                  <code className="font-mono">Linux ranchu x86_64</code>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

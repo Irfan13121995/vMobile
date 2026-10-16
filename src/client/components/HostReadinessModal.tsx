@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckCircle2, AlertTriangle, Copy, Check, RefreshCw } from 'lucide-react';
+import { X, CheckCircle2, AlertTriangle, Copy, Check, RefreshCw, Download, Play, Terminal } from 'lucide-react';
 import { HostCheck } from '../../shared/types.js';
 
 interface HostReadinessModalProps {
@@ -7,6 +7,7 @@ interface HostReadinessModalProps {
   onClose: () => void;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onTriggerAction?: (actionId: string) => void;
 }
 
 export const HostReadinessModal: React.FC<HostReadinessModalProps> = ({
@@ -14,6 +15,7 @@ export const HostReadinessModal: React.FC<HostReadinessModalProps> = ({
   onClose,
   onRefresh,
   isRefreshing,
+  onTriggerAction,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -38,7 +40,7 @@ export const HostReadinessModal: React.FC<HostReadinessModalProps> = ({
     >
       <div
         style={{
-          width: 640,
+          width: 660,
           maxHeight: '85vh',
           backgroundColor: 'var(--surface)',
           borderRadius: 'var(--radius)',
@@ -77,6 +79,9 @@ export const HostReadinessModal: React.FC<HostReadinessModalProps> = ({
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {checks.map((c) => {
             const isOk = c.status === 'ok';
+            const isSysImg = c.id === 'android-sysimg';
+            const isIosKvm = c.id === 'ios-wsl-kvm';
+
             return (
               <div
                 key={c.id}
@@ -105,6 +110,39 @@ export const HostReadinessModal: React.FC<HostReadinessModalProps> = ({
                   <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 4, lineHeight: 1.4 }}>
                     {c.detail}
                   </div>
+
+                  {/* 1-Click Action Buttons */}
+                  {isSysImg && !isOk && onTriggerAction && (
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onTriggerAction('download-android-img');
+                        }}
+                        className="btn-primary"
+                        style={{ fontSize: 12, padding: '6px 12px' }}
+                      >
+                        <Download size={13} />
+                        <span>Download Android 15 OS Image (746 MB)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {isIosKvm && onTriggerAction && (
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onTriggerAction('launch-ios-kvm');
+                        }}
+                        className="btn-secondary"
+                        style={{ fontSize: 12, padding: '5px 12px' }}
+                      >
+                        <Play size={13} />
+                        <span>Launch Local iOS VM Engine (WSL2 KVM)</span>
+                      </button>
+                    </div>
+                  )}
 
                   {c.fixCommand && (
                     <div

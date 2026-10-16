@@ -1,6 +1,8 @@
 import { DeviceStore } from '../server/store/device-store.js';
 import { HostReadiness } from '../server/host/readiness.js';
 import { AppConfig } from '../server/config.js';
+import { SystemImageDownloader } from '../server/android/system-image-downloader.js';
+import { WSLKvmManager } from '../server/ios/wsl-kvm-manager.js';
 
 AppConfig.initWorkspace();
 
@@ -79,6 +81,20 @@ async function main() {
       break;
     }
 
+    case 'download-image': {
+      console.log('[*] Downloading and installing official Google Android 15 Complete OS Image (746 MB)...');
+      const dest = await SystemImageDownloader.installAndroid15Image();
+      console.log(`[+] Installed Android 15 OS Image to: ${dest}`);
+      break;
+    }
+
+    case 'ios-kvm': {
+      console.log('[*] Initializing Strategy 1: Local WSL2 Docker-OSX KVM iOS Virtual Machine...');
+      await WSLKvmManager.launchIosContainer();
+      console.log('[+] Launched iOS VM Container.');
+      break;
+    }
+
     case 'readiness': {
       console.log('\nChecking Windows 11 Host Readiness for Android & iOS...');
       const checks = await HostReadiness.runAll();
@@ -103,6 +119,8 @@ Usage:
   vmobile info <name> [--json]
   vmobile start <name>
   vmobile stop <name>
+  vmobile download-image
+  vmobile ios-kvm
   vmobile readiness
       `);
       break;

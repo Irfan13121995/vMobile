@@ -32,7 +32,8 @@ export class EmulatorRunner {
       const lock1 = path.join(avdDir, 'hardware-qemu.ini.lock');
       const lock2 = path.join(avdDir, 'multiinstance.lock');
       if (fs.existsSync(lock1) || fs.existsSync(lock2)) {
-        return true;
+        // Only consider running if there is also an active emulator PID or adb device
+        if (proc) return true;
       }
     }
 
@@ -45,15 +46,37 @@ export class EmulatorRunner {
     }
 
     const emulatorExe = AppConfig.getEmulatorPath();
+    const sdkPath = AppConfig.getAndroidSdkPath();
+
+    // Clean up any stale lock files before launch
+    const avdDir = path.join(AppConfig.ANDROID_AVD_DIR, `${avdName}.avd`);
+    if (fs.existsSync(avdDir)) {
+      try {
+        const lock1 = path.join(avdDir, 'hardware-qemu.ini.lock');
+        const lock2 = path.join(avdDir, 'multiinstance.lock');
+        if (fs.existsSync(lock1)) fs.rmSync(lock1, { recursive: true, force: true });
+        if (fs.existsSync(lock2)) fs.rmSync(lock2, { recursive: true, force: true });
+      } catch {
+        // ignore
+      }
+    }
+
     const args = ['-avd', avdName, '-accel', 'on'];
     if (headless) {
       args.push('-no-window');
     }
 
+    const env = {
+      ...process.env,
+      ANDROID_HOME: sdkPath || undefined,
+      ANDROID_SDK_ROOT: sdkPath || undefined,
+    };
+
     const child = spawn(emulatorExe, args, {
       detached: true,
       stdio: 'ignore',
       windowsHide: false,
+      env,
     });
 
     child.unref();
@@ -69,6 +92,17 @@ export class EmulatorRunner {
 
     child.on('exit', () => {
       this.runningProcesses.delete(avdName);
+      // Clean up stale lock files
+      if (fs.existsSync(avdDir)) {
+        try {
+          const lock1 = path.join(avdDir, 'hardware-qemu.ini.lock');
+          const lock2 = path.join(avdDir, 'multiinstance.lock');
+          if (fs.existsSync(lock1)) fs.rmSync(lock1, { recursive: true, force: true });
+          if (fs.existsSync(lock2)) fs.rmSync(lock2, { recursive: true, force: true });
+        } catch {
+          // ignore
+        }
+      }
     });
 
     return info;
@@ -96,6 +130,19 @@ export class EmulatorRunner {
         // ignore
       }
       this.runningProcesses.delete(avdName);
+    }
+
+    // 3. Clear lock files
+    const avdDir = path.join(AppConfig.ANDROID_AVD_DIR, `${avdName}.avd`);
+    if (fs.existsSync(avdDir)) {
+      try {
+        const lock1 = path.join(avdDir, 'hardware-qemu.ini.lock');
+        const lock2 = path.join(avdDir, 'multiinstance.lock');
+        if (fs.existsSync(lock1)) fs.rmSync(lock1, { recursive: true, force: true });
+        if (fs.existsSync(lock2)) fs.rmSync(lock2, { recursive: true, force: true });
+      } catch {
+        // ignore
+      }
     }
 
     return true;

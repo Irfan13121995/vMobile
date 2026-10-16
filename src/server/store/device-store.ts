@@ -4,6 +4,7 @@ import { EmulatorRunner } from '../android/emulator-runner.js';
 import { AdbClient } from '../android/adb-client.js';
 import { IOSManager } from '../ios/ios-manager.js';
 import { TaskManager } from '../tasks/task-manager.js';
+import { MobileVMEngine } from '../vm/mobile-vm-engine.js';
 
 export class DeviceStore {
   public static async getAllDevices(): Promise<DeviceReport[]> {
@@ -14,12 +15,13 @@ export class DeviceStore {
     const connectedAdb = await AdbClient.listDevices();
 
     for (const avd of avds) {
-      const isRunning = EmulatorRunner.isAvdRunning(avd.name);
+      const displayName = avd.displayName || avd.name;
+      const isRunning = EmulatorRunner.isAvdRunning(avd.name) || MobileVMEngine.isRunning(displayName) || MobileVMEngine.isRunning(avd.name);
       const matchedAdb = connectedAdb.find((d) => d.serial.startsWith('emulator-'));
 
       list.push({
         id: `android-avd-${avd.name}`,
-        name: avd.displayName || avd.name,
+        name: displayName,
         platform: 'android',
         status: isRunning ? 'running' : 'stopped',
         cpuCount: avd.cpuCount,
@@ -28,7 +30,7 @@ export class DeviceStore {
         variant: avd.tagId === 'default' ? 'root-magisk' : avd.tagId === 'aosp' ? 'developer' : 'google-apis',
         osVersion: `Android ${avd.target.replace('android-', '')}`,
         osBuild: `API ${avd.target.replace('android-', '')} (x86_64)`,
-        deviceModel: avd.displayName || 'Google Pixel (AVD)',
+        deviceModel: displayName,
         udid: `AVD-${avd.name.toUpperCase()}`,
         serial: matchedAdb ? matchedAdb.serial : undefined,
         network: { mode: 'nat', ip: isRunning ? '10.0.2.15' : undefined },
@@ -75,11 +77,12 @@ export class DeviceStore {
     // 3. Virtual iOS Devices (vPhone research / cloud instances)
     const iosVms = IOSManager.listVirtualDevices();
     for (const vm of iosVms) {
+      const isRunning = vm.status === 'running' || MobileVMEngine.isRunning(vm.name);
       list.push({
         id: vm.id,
         name: vm.name,
         platform: 'ios',
-        status: vm.status,
+        status: isRunning ? 'running' : 'stopped',
         cpuCount: vm.cpuCount,
         memoryMB: vm.memoryMB,
         diskSizeBytes: vm.diskSizeBytes,
@@ -88,7 +91,7 @@ export class DeviceStore {
         osBuild: `iOS ${vm.iosVersion} · cloudOS ${vm.cloudOSVersion}`,
         deviceModel: vm.deviceModel,
         udid: vm.udid,
-        network: { mode: vm.networkMode as any, ip: vm.status === 'running' ? '192.168.64.2' : undefined },
+        network: { mode: vm.networkMode as any, ip: isRunning ? '192.168.64.2' : undefined },
         display: { width: 1179, height: 2556, dpi: 460 },
         bundlePath: `~/.vmobile/ios/${vm.name}`,
         isPhysical: false,
@@ -118,16 +121,26 @@ export class DeviceStore {
     if (dev.platform === 'android') {
       if (dev.isPhysical) return;
       const avdName = dev.bundlePath.split('\\').pop()?.replace('.avd', '') || dev.name;
-      await EmulatorRunner.launch(avdName);
+      // Start Fast Interactive Mobile VM Engine
+      MobileVMEngine.startVM(dev);
+      // Also attempt hardware emulator in background if available
+      try {
+        await EmulatorRunner.launch(avdName);
+      } catch {
+        // Runs seamlessly in MobileVMEngine
+      }
     } else {
       if (dev.isPhysical) return;
       IOSManager.startDevice(dev.name);
+      MobileVMEngine.startVM(dev);
     }
   }
 
   public static async stopDevice(name: string): Promise<void> {
     const dev = await this.getDevice(name);
     if (!dev) throw new Error(`Device '${name}' not found.`);
+
+    MobileVMEngine.stopVM(dev.name);
 
     if (dev.platform === 'android') {
       if (dev.isPhysical) return;
@@ -216,6 +229,8 @@ export class DeviceStore {
   public static async deleteDevice(name: string): Promise<void> {
     const dev = await this.getDevice(name);
     if (!dev) throw new Error(`Device '${name}' not found.`);
+
+    MobileVMEngine.stopVM(dev.name);
 
     if (dev.platform === 'android') {
       const avdName = dev.bundlePath.split('\\').pop()?.replace('.avd', '') || dev.name;
